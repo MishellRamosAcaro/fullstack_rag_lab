@@ -4,11 +4,6 @@ const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL ,
 });
 
-export const login = async (username, password) => {
-  const { data } = await api.post("/rag/login", { username, password });
-  return data;
-};
-
 export const uploadDocuments = async (files, onUploadProgress) => {
   const formData = new FormData();
   files.forEach((file) => formData.append("files", file));

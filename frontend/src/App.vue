@@ -13,7 +13,6 @@
         <Card class="card upload" >
           <template #title>
             <div class="card-head">
-              <span>Document Intake</span>
               <Tag value="Max 10 files · 10MB each" severity="info" />
             </div>
           </template>
@@ -133,11 +132,9 @@ import Textarea from "primevue/textarea";
 import Toast from "primevue/toast";
 import { useToast } from "primevue/usetoast";
 import { format } from "date-fns";
-import { login, processDocuments, queryRag, uploadDocuments } from "./services/api";
+import {  processDocuments, queryRag, uploadDocuments } from "./services/api";
 
 const toast = useToast();
-const loginForm = ref({ username: "", password: "" });
-const authLoading = ref(false);
 const uploadStatus = ref(null);
 const processing = ref(false);
 const progressValue = ref(0);
@@ -157,48 +154,15 @@ const progressLabel = computed(() => {
   if (progressValue.value > 0) return "Finalizing";
   return "";
 });
-const uploadStatusMessage = computed(() => {
-  if (!uploadStatus.value) return "";
-  if (uploadStatus.value.uploaded.length) {
-    return `${uploadStatus.value.uploaded.length} file(s) added · ${uploadStatus.value.total_files} total`;
-  }
-  return "No files were added";
-});
+
 const chunksTag = computed(() => `${chunksCount.value} chunks ready`);
 const uploadProgressLabel = computed(() =>
   uploading.value ? `Uploading... ${uploadProgress.value}%` : uploadProgress.value === 100 ? "Uploaded" : ""
 );
 
-const sourceLabel = (source) => `${source.source} · p${source.page}`;
 
 const timestamp = () => format(new Date(), "HH:mm:ss");
 
-const handleLogin = async () => {
-  authLoading.value = true;
-  try {
-    const { status } = await login(loginForm.value.username, loginForm.value.password);
-    if (status !== "authorized") {
-      throw new Error("Unauthorized");
-    }
-    uploadStatus.value = null;
-    chunksCount.value = 0;
-    chatLog.value = [];
-    toast.add({ severity: "success", summary: "Access granted", detail: "You can now upload documents", life: 3500 });
-  } catch (error) {
-    const message = error?.response?.data?.detail || "Login failed";
-    toast.add({ severity: "error", summary: "Login", detail: message, life: 4000 });
-  } finally {
-    authLoading.value = false;
-  }
-};
-
-const onFileSelect = (event) => {
-  pendingFiles.value = event.files || [];
-};
-
-const onClearFiles = () => {
-  pendingFiles.value = [];
-};
 
 const errorDetail = (error) => error?.response?.data?.detail || "Unexpected error";
 
