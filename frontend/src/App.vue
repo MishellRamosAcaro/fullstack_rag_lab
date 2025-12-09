@@ -1,0 +1,491 @@
+<template>
+  <div class="app-shell">
+    <Toast position="top-right" />
+    <header class="hero">
+      <div>
+        <h1 class="section-title">Laboratory Knowledge Console</h1>
+        <p class="subtle">Upload lab documents, process them, and ask precise questions with traceable sources.</p>
+      </div>
+    </header>
+
+    <div class="grid">
+      <div class="column">
+        <Card class="card upload" >
+          <template #title>
+            <div class="card-head">
+              <span>Document Intake</span>
+              <Tag value="Max 10 files · 10MB each" severity="info" />
+            </div>
+          </template>
+          <template #content>
+            <div class="subtle mb-3">Accepted: PDF, Markdown, DOCX, TXT.</div>
+          <FileUpload
+            ref="fileUploader"
+            name="files"
+            :customUpload="true"
+            @uploader="onUploadFiles"
+            :multiple="true"
+            accept=".pdf,.md,.markdown,.txt,.docx"
+            :maxFileSize="10485760"
+          >
+              <template #empty>
+                <span>Drag and drop files to here to upload.</span>
+              </template>
+            </FileUpload>
+            <Divider />
+            <div class="p-grid p-nogutter p-align-center gap-2">
+              <Button
+                label="Process"
+                icon="pi pi-cog"
+                class="p-button-raised"
+                :loading="processing"
+
+                @click="onProcess"
+              />
+            </div>
+            <div class="mt-3" v-if="processing || progressValue > 0">
+              <div class="progress-shell">
+                <ProgressBar :value="progressValue" :showValue="false" />
+              </div>
+              <div class="subtle mt-1">{{ progressLabel }}</div>
+            </div>
+          </template>
+        </Card>
+
+        <Card class="card info">
+          <template #title>
+            <div class="card-head">
+              <span>Session limits</span>
+              <Tag value="Safety" severity="success" />
+            </div>
+          </template>
+          <template #content>
+            <ul class="limits">
+              <li>Up to 10 files.</li>
+              <li>Max 10MB per file.</li>
+              <li>Sources are shown with filename and page.</li>
+              <li>Docs live in memory only for this proof of concept.</li>
+            </ul>
+          </template>
+        </Card>
+      </div>
+
+      <div class="column chat">
+        <Card class="card">
+          <template #title>
+            <div class="card-head">
+              <span>Lab Chat</span>
+              <Tag :value="chunksTag" severity="info" />
+            </div>
+          </template>
+          <template #content>
+            <div class="chat-window glass">
+              <ScrollPanel style="width: 100%; height: 420px">
+                <div v-if="!chatLog.length" class="placeholder subtle">
+                  Ask about procedures, safety steps, or robot behaviors once documents are processed.
+                </div>
+                <div v-for="(entry, index) in chatLog" :key="index" :class="['bubble', entry.role]">
+                  <div class="bubble-head">
+                    <span>{{ entry.role === 'user' ? 'You' : 'Lab Assistant' }}</span>
+                    <span class="timestamp">{{ entry.time }}</span>
+                  </div>
+                  <div class="bubble-text">{{ entry.text }}</div>
+     
+                </div>
+              </ScrollPanel>
+            </div>
+            <div class="question-box">
+              <label>Question</label>
+              <Textarea
+                v-model="question"
+                autoResize
+                rows="3"
+                placeholder="How do we calibrate the robot arm?"
+
+              />
+              <div class="actions">
+                <Button
+                  label="Send"
+                  icon="pi pi-send"
+                  :loading="asking"
+                  :disabled="!canAsk"
+                  @click="askQuestion"
+                />
+              </div>
+            </div>
+          </template>
+        </Card>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { computed, ref } from "vue";
+import Button from "primevue/button";
+import Card from "primevue/card";
+import Divider from "primevue/divider";
+import FileUpload from "primevue/fileupload";
+import ProgressBar from "primevue/progressbar";
+import ScrollPanel from "primevue/scrollpanel";
+import Tag from "primevue/tag";
+import Textarea from "primevue/textarea";
+import Toast from "primevue/toast";
+import { useToast } from "primevue/usetoast";
+import { format } from "date-fns";
+import { login, processDocuments, queryRag, uploadDocuments } from "./services/api";
+
+const toast = useToast();
+const loginForm = ref({ username: "", password: "" });
+const authLoading = ref(false);
+const uploadStatus = ref(null);
+const processing = ref(false);
+const progressValue = ref(0);
+const uploadProgress = ref(0);
+const uploading = ref(false);
+const chunksCount = ref(0);
+const question = ref("");
+const asking = ref(false);
+const pendingFiles = ref([]);
+const chatLog = ref([]);
+const fileUploader = ref(null);
+
+const canAsk = computed(() =>  chunksCount.value > 0 && question.value.trim().length > 2 && !asking.value);
+const progressLabel = computed(() => {
+  if (processing.value) return "Processing documents";
+  if (progressValue.value === 100) return "Ready";
+  if (progressValue.value > 0) return "Finalizing";
+  return "";
+});
+const uploadStatusMessage = computed(() => {
+  if (!uploadStatus.value) return "";
+  if (uploadStatus.value.uploaded.length) {
+    return `${uploadStatus.value.uploaded.length} file(s) added · ${uploadStatus.value.total_files} total`;
+  }
+  return "No files were added";
+});
+const chunksTag = computed(() => `${chunksCount.value} chunks ready`);
+const uploadProgressLabel = computed(() =>
+  uploading.value ? `Uploading... ${uploadProgress.value}%` : uploadProgress.value === 100 ? "Uploaded" : ""
+);
+
+const sourceLabel = (source) => `${source.source} · p${source.page}`;
+
+const timestamp = () => format(new Date(), "HH:mm:ss");
+
+const handleLogin = async () => {
+  authLoading.value = true;
+  try {
+    const { status } = await login(loginForm.value.username, loginForm.value.password);
+    if (status !== "authorized") {
+      throw new Error("Unauthorized");
+    }
+    uploadStatus.value = null;
+    chunksCount.value = 0;
+    chatLog.value = [];
+    toast.add({ severity: "success", summary: "Access granted", detail: "You can now upload documents", life: 3500 });
+  } catch (error) {
+    const message = error?.response?.data?.detail || "Login failed";
+    toast.add({ severity: "error", summary: "Login", detail: message, life: 4000 });
+  } finally {
+    authLoading.value = false;
+  }
+};
+
+const onFileSelect = (event) => {
+  pendingFiles.value = event.files || [];
+};
+
+const onClearFiles = () => {
+  pendingFiles.value = [];
+};
+
+const errorDetail = (error) => error?.response?.data?.detail || "Unexpected error";
+
+const onUploadFiles = async (event) => {
+  const files = event?.files?.length ? event.files : pendingFiles.value;
+  if (!files || !files.length) {
+    toast.add({ severity: "info", summary: "No files", detail: "Select at least one file", life: 2500 });
+    return;
+  }
+  try {
+    uploadProgress.value = 0;
+    uploading.value = true;
+    const data = await uploadDocuments(files, (progressEvent) => {
+      if (!progressEvent.total) return;
+      uploadProgress.value = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+    });
+    uploadStatus.value = data;
+    toast.add({ severity: "success", summary: "Uploaded", detail: `Accepted ${data.uploaded.length} file(s)`, life: 3000 });
+    pendingFiles.value = [];
+    if (event?.options?.clear) {
+      event.options.clear();
+    } else if (fileUploader.value?.clear) {
+      fileUploader.value.clear();
+    }
+  } catch (error) {
+    const detail = errorDetail(error);
+    toast.add({ severity: "error", summary: "Upload", detail, life: 4000 });
+  } finally {
+    uploading.value = false;
+    if (uploadProgress.value === 0) {
+      uploadProgress.value = 0;
+    }
+    setTimeout(() => (uploadProgress.value = 0), 800);
+  }
+};
+
+const simulateProgress = async () => {
+  progressValue.value = 15;
+  await new Promise((resolve) => setTimeout(resolve, 300));
+  progressValue.value = 45;
+  await new Promise((resolve) => setTimeout(resolve, 300));
+  progressValue.value = 70;
+};
+
+const onProcess = async () => {
+  processing.value = true;
+  try {
+    await simulateProgress();
+    const data = await processDocuments();
+    progressValue.value = 100;
+    chunksCount.value = data.chunks;
+    toast.add({ severity: "success", summary: "Processed", detail: `${data.chunks} chunks ready`, life: 3000 });
+  } catch (error) {
+    const detail = errorDetail(error);
+    toast.add({ severity: "error", summary: "Process", detail, life: 4000 });
+  } finally {
+    processing.value = false;
+    setTimeout(() => (progressValue.value = 0), 800);
+  }
+};
+
+const askQuestion = async () => {
+  if (!canAsk.value) return;
+  const q = question.value.trim();
+  question.value = "";
+  chatLog.value.push({ role: "user", text: q, time: timestamp() });
+  asking.value = true;
+  try {
+    const data = await queryRag(q);
+    chatLog.value.push({ role: "assistant", text: data.answer, time: timestamp(), sources: data.chunks });
+  } catch (error) {
+    const detail = errorDetail(error);
+    toast.add({ severity: "error", summary: "Chat", detail, life: 4000 });
+  } finally {
+    asking.value = false;
+  }
+};
+</script>
+
+<style scoped>
+.app-shell {
+  padding: 1.5rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.hero {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.session-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(59, 130, 246, 0.15);
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  color: #c7d2fe;
+  padding: 0.5rem 0.8rem;
+  border-radius: 12px;
+}
+
+.session-pill .label {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #a5b4fc;
+}
+
+.session-pill .value {
+  font-weight: 700;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 1.25rem;
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.card {
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.form-grid .field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.subtle.mb-3 {
+  margin-bottom: 0.75rem;
+}
+
+.upload .p-fileupload {
+  width: 100%;
+}
+
+.drop-hint {
+  text-align: center;
+  padding: 1.25rem;
+  color: var(--muted);
+}
+
+.upload-status {
+  margin-top: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.chips {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.disabled {
+  opacity: 0.75;
+  pointer-events: none;
+}
+
+.limits {
+  padding-left: 1.1rem;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.chat .card {
+  min-height: 720px;
+}
+
+.chat-window {
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.placeholder {
+  padding: 1rem;
+}
+
+.bubble {
+  padding: 0.9rem;
+  margin-bottom: 0.9rem;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+
+.bubble.user {
+  background: rgba(59, 130, 246, 0.08);
+  border-color: rgba(59, 130, 246, 0.25);
+}
+
+.bubble.assistant {
+  background: rgba(15, 23, 42, 0.7);
+}
+
+.bubble-head {
+  display: flex;
+  justify-content: space-between;
+  color: #cbd5e1;
+  font-weight: 600;
+  margin-bottom: 0.45rem;
+}
+
+.bubble-text {
+  margin: 0;
+  color: #e5e7eb;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.sources {
+  margin-top: 0.45rem;
+}
+
+.sources-label {
+  font-size: 0.85rem;
+  color: #a5b4fc;
+  font-weight: 600;
+}
+
+.sources-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.3rem;
+}
+
+.question-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.timestamp {
+  color: #94a3b8;
+  font-size: 0.85rem;
+}
+
+.icon-success {
+  color: #34d399;
+  margin-right: 0.35rem;
+}
+
+.icon-warn {
+  color: #fbbf24;
+  margin-right: 0.35rem;
+}
+
+.icon-muted {
+  color: var(--muted);
+  margin-right: 0.35rem;
+}
+
+@media (max-width: 768px) {
+  .hero {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .chat .card {
+    min-height: auto;
+  }
+}
+</style>

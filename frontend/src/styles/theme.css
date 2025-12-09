@@ -1,0 +1,72 @@
+:root {
+  --bg: #0b1220;
+  --panel: #0f172a;
+  --panel-strong: #111827;
+  --accent: #3b82f6;
+  --accent-strong: #2563eb;
+  --muted: #94a3b8;
+  --border: #1f2937;
+  --glow: 0 10px 60px rgba(59, 130, 246, 0.35);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Space Grotesk", "Inter", system-ui, -apple-system, sans-serif;
+  background: radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.18), transparent 25%),
+    radial-gradient(circle at 80% 0%, rgba(14, 165, 233, 0.18), transparent 28%),
+    linear-gradient(180deg, #0b1220 0%, #060910 100%);
+  color: #e5e7eb;
+  min-height: 100vh;
+}
+
+a {
+  color: var(--accent);
+}
+
+::selection {
+  background: rgba(59, 130, 246, 0.25);
+}
+
+.p-card {
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(15, 23, 42, 0.75));
+  border: 1px solid var(--border);
+  box-shadow: var(--glow);
+}
+
+.glass {
+  background: rgba(17, 24, 39, 0.85);
+  border: 1px solid var(--border);
+  backdrop-filter: blur(12px);
+}
+
+.tag {
+  border-radius: 8px;
+  padding: 0.25rem 0.65rem;
+  background: rgba(59, 130, 246, 0.12);
+  color: #c7d2fe;
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  font-size: 0.85rem;
+  letter-spacing: 0.02em;
+}
+
+.section-title {
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #e2e8f0;
+  margin: 0;
+}
+
+.subtle {
+  color: var(--muted);
+}
+
+.progress-shell {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 6px;
+}
