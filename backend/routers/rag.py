@@ -8,6 +8,7 @@ from schemas import (
     ProcessResponse,
     RagQueryRequest,
     RagQueryResponse,
+    ResetResponse,
     UploadResponse,
 )
 from services.rag_service import RAGService
@@ -45,3 +46,9 @@ def query_rag(request: RagQueryRequest, service: RAGService = Depends(get_rag_se
         raise
     except Exception as exc:  # pragma: no cover - defensive against unexpected errors
         raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.delete("/reset", response_model=ResetResponse)
+def reset_documents(service: RAGService = Depends(get_rag_service)) -> ResetResponse:
+    files_cleared, chunks_cleared = service.reset()
+    return ResetResponse(status="reset", files_cleared=files_cleared, chunks_cleared=chunks_cleared)

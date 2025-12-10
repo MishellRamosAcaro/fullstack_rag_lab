@@ -28,3 +28,9 @@ class DocumentChunk(BaseModel):
 class RagQueryResponse(BaseModel):
     answer: str
     chunks: List[DocumentChunk]
+
+
+class ResetResponse(BaseModel):
+    status: str = Field(..., description="Estado del reseteo")
+    files_cleared: int = Field(..., description="Cantidad de archivos eliminados")
+    chunks_cleared: int = Field(..., description="Cantidad de chunks eliminados")

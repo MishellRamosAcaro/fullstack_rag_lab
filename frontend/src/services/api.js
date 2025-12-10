@@ -19,9 +19,18 @@ export const processDocuments = async () => {
   return data;
 };
 
+export const resetDocuments = async () => {
+  const { data } = await api.delete("/rag/reset");
+  return data;
+};
+
 export const queryRag = async (question) => {
   const { data } = await api.post("/rag/query", { question });
   return data;
 };
 
+export const resetRag = async () => {
+  const { data } = await api.post("/rag/reset");
+  return data;
+}
 
