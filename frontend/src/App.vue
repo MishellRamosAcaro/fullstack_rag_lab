@@ -177,7 +177,6 @@ const chunksCount = ref(0);
 const resetting = ref(false);
 const question = ref("");
 const asking = ref(false);
-const pendingFiles = ref([]);
 const chatLog = ref([]);
 const fileUploader = ref(null);
 
@@ -206,8 +205,8 @@ const timestamp = () => format(new Date(), "HH:mm:ss");
 const errorDetail = (error) => error?.response?.data?.detail || "Unexpected error";
 
 const onUploadFiles = async (event) => {
-  const files = event?.files?.length ? event.files : pendingFiles.value;
-  if (!files || !files.length) {
+  const files = event?.files || [];
+  if (!files.length) {
     toast.add({ severity: "info", summary: "No files", detail: "Select at least one file", life: 2500 });
     return;
   }
@@ -221,7 +220,6 @@ const onUploadFiles = async (event) => {
     uploadStatus.value = data;
     chunksCount.value = 0;
     toast.add({ severity: "success", summary: "Uploaded", detail: `Accepted ${data.uploaded.length} file(s)`, life: 3000 });
-    pendingFiles.value = [];
     if (event?.options?.clear) {
       event.options.clear();
     } else if (fileUploader.value?.clear) {
@@ -266,7 +264,6 @@ const onReset = async () => {
   try {
     const data = await resetDocuments();
     uploadStatus.value = null;
-    pendingFiles.value = [];
     chunksCount.value = 0;
     progressValue.value = 0;
     uploadProgress.value = 0;
@@ -338,28 +335,6 @@ const askQuestion = async () => {
   filter: drop-shadow(0 4px 4px rgba(0, 0, 0, 0.12));
 }
 
-.session-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  background: rgba(59, 130, 246, 0.15);
-  border: 1px solid rgba(59, 130, 246, 0.35);
-  color: #c7d2fe;
-  padding: 0.5rem 0.8rem;
-  border-radius: 12px;
-}
-
-.session-pill .label {
-  font-size: 0.85rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #a5b4fc;
-}
-
-.session-pill .value {
-  font-weight: 700;
-}
-
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
@@ -386,12 +361,6 @@ const askQuestion = async () => {
   letter-spacing: 0.01em;
 }
 
-.form-grid .field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-}
-
 .subtle.mb-3 {
   margin-bottom: 0.75rem;
 }
@@ -411,17 +380,6 @@ const askQuestion = async () => {
   display: flex;
   align-items: center;
   gap: 0.35rem;
-}
-
-.chips {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.disabled {
-  opacity: 0.75;
-  pointer-events: none;
 }
 
 .limits {
@@ -476,23 +434,6 @@ const askQuestion = async () => {
   white-space: pre-wrap;
 }
 
-.sources {
-  margin-top: 0.45rem;
-}
-
-.sources-label {
-  font-size: 0.85rem;
-  color: #a5b4fc;
-  font-weight: 600;
-}
-
-.sources-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-  margin-top: 0.3rem;
-}
-
 .question-box {
   display: flex;
   flex-direction: column;
@@ -539,9 +480,6 @@ const askQuestion = async () => {
   .chat .card {
     min-height: auto;
   }
-}
-
-@media (max-width: 768px) {
   .hero-logo-shell {
     align-self: flex-start;
     min-width: auto;
@@ -598,10 +536,6 @@ const askQuestion = async () => {
   gap: 0.5rem;
   color: var(--muted);
   font-size: 0.95rem;
-}
-
-.pipe {
-  color: var(--border);
 }
 
 @media (max-width: 640px) {
