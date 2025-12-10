@@ -75,6 +75,18 @@
               </div>
               <div class="subtle mt-1">{{ progressLabel }}</div>
             </div>
+            <div class="processed" v-if="processedFiles.length">
+              <div class="processed-head">
+                <span>Processed files</span>
+                <Tag :value="processedFiles.length" severity="success" />
+              </div>
+              <ul class="processed-list">
+                <li v-for="file in processedFiles" :key="file">
+                  <i class="pi pi-check-circle"></i>
+                  <span>{{ file }}</span>
+                </li>
+              </ul>
+            </div>
           </template>
         </Card>
  
@@ -83,9 +95,12 @@
         <Card class="card info">
           <template #title>
             <div class="card-head">
-              <span>Session limits</span>
+              <span>Session Test Limits</span>
               <Tag value="Safety" severity="success" />
             </div>
+          </template>
+          <template #subtitle>
+            <div class="subtle">For demonstration purposes only.</div>
           </template>
           <template #content>
             <ul class="limits">
@@ -95,6 +110,7 @@
               <li>Docs live in memory only for this proof of concept.</li>
             </ul>
           </template>
+  
         </Card>
       </div>
 
@@ -178,6 +194,7 @@ const resetting = ref(false);
 const question = ref("");
 const asking = ref(false);
 const chatLog = ref([]);
+const processedFiles = ref([]);
 const fileUploader = ref(null);
 
 const filesCount = computed(
@@ -210,10 +227,24 @@ const onUploadFiles = async (event) => {
     toast.add({ severity: "info", summary: "No files", detail: "Select at least one file", life: 2500 });
     return;
   }
+  const processedSet = new Set(processedFiles.value);
+  const filteredFiles = files.filter((file) => !processedSet.has(file.name));
+  if (filteredFiles.length !== files.length) {
+    toast.add({
+      severity: "warn",
+      summary: "Duplicate",
+      detail: "Some files were already processed and were skipped",
+      life: 3000,
+    });
+  }
+  if (!filteredFiles.length) {
+    toast.add({ severity: "info", summary: "No new files", detail: "All selected files were already processed", life: 3000 });
+    return;
+  }
   try {
     uploadProgress.value = 0;
     uploading.value = true;
-    const data = await uploadDocuments(files, (progressEvent) => {
+    const data = await uploadDocuments(filteredFiles, (progressEvent) => {
       if (!progressEvent.total) return;
       uploadProgress.value = Math.round((progressEvent.loaded * 100) / progressEvent.total);
     });
@@ -248,6 +279,8 @@ const onProcess = async () => {
     const data = await processDocuments();
     progressValue.value = 100;
     chunksCount.value = data.chunks;
+    const newlyProcessed = uploadStatus.value?.uploaded || [];
+    processedFiles.value = Array.from(new Set([...processedFiles.value, ...newlyProcessed]));
     toast.add({ severity: "success", summary: "Processed", detail: `${data.chunks} chunks ready`, life: 3000 });
   } catch (error) {
     const detail = errorDetail(error);
@@ -267,6 +300,7 @@ const onReset = async () => {
     chunksCount.value = 0;
     progressValue.value = 0;
     uploadProgress.value = 0;
+    processedFiles.value = [];
     chatLog.value = [];
     question.value = "";
     if (fileUploader.value?.clear) {
@@ -312,7 +346,6 @@ const askQuestion = async () => {
   grid-template-columns: auto 1fr;
   align-items: center;
   gap: 2rem;
-  margin-bottom: 1.5rem;
 }
 
 .hero-copy {
@@ -361,12 +394,13 @@ const askQuestion = async () => {
   letter-spacing: 0.01em;
 }
 
-.subtle.mb-3 {
-  margin-bottom: 0.75rem;
+.subtle{
+  margin-bottom: 2px;
 }
 
 .upload .p-fileupload {
   width: 100%;
+  height:50%;
 }
 
 .drop-hint {
@@ -450,6 +484,40 @@ const askQuestion = async () => {
   gap: 0.5rem;
   align-items: center;
   justify-content: space-between;
+}
+
+.processed {
+  margin-top: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.75rem;
+}
+
+.processed-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  font-weight: 700;
+}
+
+.processed-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.processed-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #0f172a;
+}
+
+.processed-list i {
+  color: #22c55e;
 }
 
 .timestamp {
