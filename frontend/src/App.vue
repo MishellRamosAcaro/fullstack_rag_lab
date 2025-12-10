@@ -75,6 +75,18 @@
               </div>
               <div class="subtle mt-1">{{ progressLabel }}</div>
             </div>
+            <div class="uploaded" v-if="uploadedFiles.length">
+              <div class="uploaded-head">
+                <span>Uploaded</span>
+                <Tag :value="uploadedFiles.length" severity="info" />
+              </div>
+              <ul class="uploaded-list">
+                <li v-for="file in uploadedFiles" :key="file">
+                  <i class="pi pi-upload"></i>
+                  <span>{{ file }}</span>
+                </li>
+              </ul>
+            </div>
             <div class="processed" v-if="processedFiles.length">
               <div class="processed-head">
                 <span>Processed files</span>
@@ -196,13 +208,20 @@ const asking = ref(false);
 const chatLog = ref([]);
 const processedFiles = ref([]);
 const fileUploader = ref(null);
+const uploadedFiles = computed(() => uploadStatus.value?.uploaded || []);
 
 const filesCount = computed(
-  () => uploadStatus.value?.total_files || uploadStatus.value?.uploaded?.length || 0
+  () => uploadStatus.value?.total_files || uploadedFiles.value.length || 0
 );
 const canAsk = computed(() =>  chunksCount.value > 0 && question.value.trim().length > 2 && !asking.value);
 const canProcess = computed(() => filesCount.value > 0 && !processing.value && !uploading.value);
-const canReset = computed(() => filesCount.value > 0 && !processing.value && !uploading.value && !resetting.value);
+const canReset = computed(
+  () =>
+    (filesCount.value > 0 || processedFiles.value.length > 0 || chunksCount.value > 0) &&
+    !processing.value &&
+    !uploading.value &&
+    !resetting.value
+);
 const progressLabel = computed(() => {
   if (processing.value) return "Processing documents";
   if (progressValue.value === 100) return "Ready";
@@ -281,6 +300,7 @@ const onProcess = async () => {
     chunksCount.value = data.chunks;
     const newlyProcessed = uploadStatus.value?.uploaded || [];
     processedFiles.value = Array.from(new Set([...processedFiles.value, ...newlyProcessed]));
+    uploadStatus.value = null;
     toast.add({ severity: "success", summary: "Processed", detail: `${data.chunks} chunks ready`, life: 3000 });
   } catch (error) {
     const detail = errorDetail(error);
@@ -491,6 +511,40 @@ const askQuestion = async () => {
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 0.75rem;
+}
+
+.uploaded {
+  margin-top: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.75rem;
+}
+
+.uploaded-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  font-weight: 700;
+}
+
+.uploaded-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.uploaded-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #0f172a;
+}
+
+.uploaded-list i {
+  color: #0ea5e9;
 }
 
 .processed-head {
