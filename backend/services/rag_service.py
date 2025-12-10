@@ -185,3 +185,17 @@ class RAGService:
         answer_text = response.content if hasattr(response, "content") else str(response)
         answer = f"{answer_text}"
         return answer, chunk_responses
+
+    def reset(self) -> tuple[int, int]:
+        files_cleared = len(self.state.files)
+        chunks_cleared = self.state.chunks_count
+
+        if self.state.vectorstore and hasattr(self.state.vectorstore, "delete_collection"):
+            try:
+                self.state.vectorstore.delete_collection()
+            except Exception:
+                # Vector store cleanup is best effort; continue to reset in-memory state.
+                pass
+
+        self.state = RAGState()
+        return files_cleared, chunks_cleared
