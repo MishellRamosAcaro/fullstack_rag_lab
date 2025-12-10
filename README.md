@@ -1,21 +1,31 @@
 # Lab RAG POC
 
-Fullstack proof of concept for a laboratory RAG console. Backend (FastAPI + LangChain + OpenAI + Chroma in-memory) and frontend (Vue 3 + PrimeVue) let you upload lab documents, process them, and chat with traceable sources.
+Fullstack proof of concept for a laboratory knowledge console. FastAPI + LangChain + OpenAI (Chroma in-memory) on the backend and Vue 3 + PrimeVue on the frontend let you upload lab documents, process them, and chat with answers that cite sources.
 
 ## Features / Características
-- Login simulado (credenciales en variables de entorno).
 - Carga de PDF, Markdown, DOCX y TXT (máx. 10 MB por archivo, 10 archivos en memoria).
-- Procesado manual con barra de progreso; almacenamiento de documentos y embeddings en memoria.
-- Chat con historial y sección de fuentes (archivo + página).
+- Paso manual de procesado con barra de progreso; embeddings y vector store viven en memoria para la sesión.
+- Chat con historial, respuesta contextual y listado de fuentes (archivo + página).
+- Botón de reset para limpiar archivos, chunks y estado de chat.
 
 ## Backend
 - Stack: FastAPI, LangChain, OpenAI, Chroma (en memoria para el POC).
-- Principales endpoints:
-  - `POST /rag/login` `{ username, password }` -> `{ status }`
-- `POST /rag/upload` form-data `files[]`
-- `POST /rag/process` -> `{ status, chunks }`
-- `POST /rag/query` `{ question }` -> `{ answer, chunks }`
-- Configuración: variables en `.env` (ver `.env.example` si existiera) con `OPENAI_API_KEY`, modelos, rutas de docs, etc. Para este POC, `CHROMA_DIR` queda en memoria.
+- Endpoints principales:
+  - `POST /rag/upload` form-data `files[]` -> `{ uploaded, rejected, total_files }`
+  - `POST /rag/process` -> `{ status, chunks }`
+  - `POST /rag/query` `{ question }` -> `{ answer, chunks }`
+  - `DELETE /rag/reset` -> `{ status, files_cleared, chunks_cleared }`
+- Validaciones: 10 archivos máximo, 10 MB cada uno, extensiones permitidas `.pdf .md .markdown .txt .docx`, pregunta no vacía.
+- Variables de entorno (colocarlas en `.env` o exportarlas):
+  ```
+  OPENAI_API_KEY=tu_api_key
+  OPENAI_MODEL=gpt-4o-mini            # opcional, por defecto
+  EMBEDDING_MODEL=text-embedding-3-small
+  CHUNK_SIZE=800
+  CHUNK_OVERLAP=100
+  K_RESULTS=5
+  TEMPERATURE=0.1
+  ```
 - Ejecutar local:
   ```bash
   cd backend
@@ -27,20 +37,20 @@ Fullstack proof of concept for a laboratory RAG console. Backend (FastAPI + Lang
 
 ## Frontend
 - Stack: Vite + Vue 3 (Composition API) + PrimeVue + PrimeFlex.
-- Config: `VITE_API_BASE_URL` apuntando al backend (por defecto `http://localhost:8000`).
+- Flujo UI: subir archivos -> “Process” -> preguntar en el chat -> revisar fuentes -> “Reset” para limpiar sesión.
+- Config: crear `.env` en `frontend/` con `VITE_API_BASE_URL=http://localhost:8000` (o la URL del backend).
 - Ejecutar local:
   ```bash
   cd frontend
   npm install
   npm run dev -- --host --port 5173
   ```
-- Flujo UI: login -> subir archivos -> “Process” -> preguntar en el chat (interfaz en inglés, contenido mantiene idioma del documento).
 
 ## Docker / Compose
 - Imágenes:
   - Backend: `backend/Dockerfile`
   - Frontend estático: `frontend/Dockerfile`
-- Levantar todo:
+- Levantar todo desde la raíz:
   ```bash
   docker-compose up --build
   ```
@@ -49,5 +59,5 @@ Fullstack proof of concept for a laboratory RAG console. Backend (FastAPI + Lang
 
 ## Límites y notas
 - 10 archivos máx. cargados a la vez, 10 MB c/u.
-- Documentos en memoria: si el backend se reinicia, los archivos se pierden.
-- Las respuestas incluyen sección “Sources” con archivo y página.
+- Documentos y vector store están en memoria; al reiniciar el backend se pierden.
+- Respuestas incluyen sección de “Sources” con archivo y página para trazabilidad.
