@@ -121,18 +121,9 @@
 
 <script setup>
 import { computed, ref } from "vue";
-import Button from "primevue/button";
-import Card from "primevue/card";
-import Divider from "primevue/divider";
-import FileUpload from "primevue/fileupload";
-import ProgressBar from "primevue/progressbar";
-import ScrollPanel from "primevue/scrollpanel";
-import Tag from "primevue/tag";
-import Textarea from "primevue/textarea";
-import Toast from "primevue/toast";
 import { useToast } from "primevue/usetoast";
 import { format } from "date-fns";
-import {  processDocuments, queryRag, uploadDocuments } from "./services/api";
+import {  processDocuments, queryRag, uploadDocuments } from "./services/api.js";
 
 const toast = useToast();
 const uploadStatus = ref(null);

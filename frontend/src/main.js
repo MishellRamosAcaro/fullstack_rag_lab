@@ -13,5 +13,13 @@ const app = createApp(App);
 
 app.use(PrimeVue, { ripple: true });
 app.use(ToastService);
-
+app.component("Button", Button);
+app.component("Card", Card);
+app.component("Divider", Divider);
+app.component("FileUpload", FileUpload);
+app.component("ProgressBar", ProgressBar);
+app.component("ScrollPanel", ScrollPanel);
+app.component("Tag", Tag);
+app.component("Textarea", Textarea);
+app.component("Toast", Toast); 
 app.mount("#app");

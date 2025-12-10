@@ -23,3 +23,5 @@ export const queryRag = async (question) => {
   const { data } = await api.post("/rag/query", { question });
   return data;
 };
+
+
