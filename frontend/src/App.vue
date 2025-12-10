@@ -16,6 +16,7 @@
         <Card class="card upload" >
           <template #title>
             <div class="card-head">
+              <span>Document Upload</span>
               <Tag value="Max 10 files · 10MB each" severity="info" />
             </div>
           </template>
@@ -30,6 +31,7 @@
             accept=".pdf,.md,.markdown,.txt,.docx"
             :maxFileSize="10485760"
           >
+
               <template #empty>
                 <div class="drop-hint">
                   <i class="pi pi-cloud-upload" style="font-size: 2rem"></i>
@@ -37,6 +39,20 @@
                   <div class="subtle mb-3">Accepted: PDF, Markdown, DOCX, TXT.</div>
                 </div>
               </template>
+            <template #content="{ files }">
+              <div class="drop-hint" v-if="files?.length">
+                <div class="selected-head">
+                  <i class="pi pi-folder-open"></i>
+                  <span>{{ files.length }} file(s) selected</span>
+                </div>
+                <div class="selected-list">
+                  <div class="selected-file" v-for="file in files" :key="file.name">
+                    <i class="pi pi-file"></i>
+                    <span class="selected-file-name">{{ file.name }}</span>
+                  </div>
+                </div>
+              </div>
+            </template>
             <template #upload-status>
               <div class="upload-status" v-if="uploadProgressLabel">
                 <i :class="{
@@ -108,7 +124,7 @@
           <template #title>
             <div class="card-head">
               <span>Session Test Limits</span>
-              <Tag value="Safety" severity="success" />
+              <Tag value="Active" severity="success" />
             </div>
           </template>
           <template #subtitle>
@@ -116,13 +132,11 @@
           </template>
           <template #content>
             <ul class="limits">
-              <li>Up to 10 files.</li>
-              <li>Max 10MB per file.</li>
-              <li>Sources are shown with filename and page.</li>
-              <li>Docs live in memory only for this proof of concept.</li>
+              <li><i class="pi pi-clone"></i><span>Up to 10 files.</span></li>
+              <li><i class="pi pi-upload"></i><span>Max 10MB per file.</span></li>
+              <li><i class="pi pi-database"></i><span>Docs live in memory only for this proof of concept.</span></li>
             </ul>
           </template>
-  
         </Card>
       </div>
 
@@ -405,12 +419,22 @@ const askQuestion = async () => {
   overflow: hidden;
 }
 
+
+
+.card.info :deep(.p-card-body) {
+  padding: 0.75rem 0.95rem;
+}
+
+.card.info :deep(.p-card-content) {
+  padding-top: 0.4rem;
+}
+
 .card-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: 0.01em;
 }
 
@@ -429,6 +453,44 @@ const askQuestion = async () => {
   color: var(--muted);
 }
 
+.selected-head {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 0.5rem;
+}
+
+.selected-list {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.5rem;
+  text-align: left;
+}
+
+.selected-file {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.55rem 0.65rem;
+  background: #f8fafc;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: #0f172a;
+}
+
+.selected-file i {
+  color: #0ea5e9;
+}
+
+.selected-file-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .upload-status {
   margin-top: 0.75rem;
   display: flex;
@@ -437,9 +499,25 @@ const askQuestion = async () => {
 }
 
 .limits {
-  padding-left: 1.1rem;
-  color: var(--muted);
-  line-height: 1.7;
+  padding-left: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.2rem;
+}
+
+.limits li {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.5rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #f8fafc;
+  font-weight: 600;
+}
+
+.limits i {
+  color: #0ea5e9;
 }
 
 .chat .card {
