@@ -39,7 +39,7 @@ class RAGService:
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
         if not settings.openai_api_key:
-            raise HTTPException(status_code=500, detail="OPENAI_API_KEY no configurada")
+            raise HTTPException(status_code=500, detail="OPENAI_API_KEY not configured")
         self.embedding = OpenAIEmbeddings(model=self.settings.embedding_model, api_key=self.settings.openai_api_key)
         self.llm = ChatOpenAI(
             model=self.settings.openai_model,
@@ -52,7 +52,7 @@ class RAGService:
     def _validate_file(self, upload: UploadFile) -> Tuple[bool, str]:
         extension = Path(upload.filename or "").suffix.lower()
         if extension not in ALLOWED_EXTENSIONS:
-            return False, "Tipo de archivo no soportado"
+            return False, "Unsupported file type"
         return True, ""
 
     async def store_files(self, uploads: List[UploadFile]) -> Tuple[List[str], List[str], int]:
@@ -60,7 +60,7 @@ class RAGService:
         rejected: List[str] = []
 
         if len(self.state.files) + len(uploads) > MAX_FILES_ALLOWED:
-            raise HTTPException(status_code=400, detail="Límite de 10 archivos alcanzado")
+            raise HTTPException(status_code=400, detail="10 file limit reached")
 
         for upload in uploads:
             is_valid, reason = self._validate_file(upload)
@@ -123,11 +123,11 @@ class RAGService:
             return self._load_docx(file)
         if extension in {".md", ".markdown", ".txt"}:
             return self._load_text_like(file)
-        raise HTTPException(status_code=400, detail=f"Extensión no soportada: {extension}")
+        raise HTTPException(status_code=400, detail=f"Unsupported extension: {extension}")
 
     def process_documents(self) -> int:
         if not self.state.files:
-            raise HTTPException(status_code=400, detail="No hay archivos para procesar")
+            raise HTTPException(status_code=400, detail="No files to process")
 
         documents: List[LangChainDocument] = []
         for file in self.state.files:
@@ -148,9 +148,9 @@ class RAGService:
 
     def query(self, question: str) -> tuple[str, List[DocumentChunk]]:
         if not question.strip():
-            raise HTTPException(status_code=400, detail="La pregunta no puede estar vacía")
+            raise HTTPException(status_code=400, detail="Question cannot be empty")
         if not self.state.vectorstore:
-            raise HTTPException(status_code=400, detail="Primero procesa los documentos")
+            raise HTTPException(status_code=400, detail="Process documents first")
 
         retriever = self.state.vectorstore.as_retriever(search_kwargs={"k": self.settings.k_results})
         relevant_docs: List[LangChainDocument] = retriever.invoke(question)
