@@ -19,6 +19,13 @@ class Settings(BaseSettings):
     chunk_overlap: int = Field(default=100)
     k_results: int = Field(default=5)
     temperature: float = Field(default=0.1)
+    database_url: str = Field(
+        default="sqlite:///./app.db",
+        description="Database connection string",
+    )
+    jwt_secret_key: str = Field(default="change_me", repr=False)
+    jwt_algorithm: str = Field(default="HS256")
+    access_token_expire_minutes: int = Field(default=60)
 
     model_config = {
         "env_file": ".env",
