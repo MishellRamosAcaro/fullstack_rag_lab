@@ -2,6 +2,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from config import get_settings
+from database import Base, engine
+from models import User  # noqa: F401
+from routers import auth
 from routers import rag
 
 app = FastAPI(title="Fullstack RAG COM")
@@ -18,3 +21,9 @@ app.add_middleware(
 
 
 app.include_router(rag.router)
+app.include_router(auth.router)
+
+
+@app.on_event("startup")
+def on_startup() -> None:
+    Base.metadata.create_all(bind=engine)

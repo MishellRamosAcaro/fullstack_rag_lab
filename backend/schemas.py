@@ -34,3 +34,13 @@ class ResetResponse(BaseModel):
     status: str = Field(..., description="Estado del reseteo")
     files_cleared: int = Field(..., description="Cantidad de archivos eliminados")
     chunks_cleared: int = Field(..., description="Cantidad de chunks eliminados")
+
+
+class LoginRequest(BaseModel):
+    identifier: str = Field(..., description="Username or email")
+    password: str = Field(..., description="Plain text password")
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = Field(default="bearer")
