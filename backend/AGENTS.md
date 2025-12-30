@@ -1,122 +1,95 @@
-# 🤖 Guía de Agentes y Estándares de Desarrollo (Backend)
+# 🤖 Agent Guide and Development Standards (Backend)
 
-Este documento define las directrices obligatorias para el desarrollo en el **backend**. Todos los agentes (IA) y colaboradores deben seguir estas reglas para garantizar la calidad y seguridad del código ejecutado en contenedores.
-
----
-
-## 🏗️ Arquitectura y Diseño
-
-* **Principios SOLID:** Cada clase debe tener una única responsabilidad.
-* **KISS (Keep It Simple, Stupid):** Prioriza la simplicidad y legibilidad.
-* **DRY (Don't Repeat Yourself):** Abstrae lógica común para evitar duplicidad.
-* **Arquitectura de Capas:** Mantén una separación clara entre la lógica de negocio, el acceso a datos y la interfaz de entrada.
+This document defines the mandatory guidelines for developing the **backend**. All agents (AI) and contributors must follow these rules to ensure quality and security for code executed in containers.
 
 ---
 
-## 🐍 Entorno de Desarrollo (Python 3.13.7)
+## 🏗️ Architecture and Design
 
-El código se desarrolla localmente pero se ejecuta dentro de un contenedor Docker mediante volúmenes compartidos.
-
-* **Versión:** Python 3.13.7. Utiliza características modernas (f-strings avanzadas, mejoras en tipos, etc.).
-* **Gestión de Dependencias:** Cualquier nueva librería debe añadirse al `requirements.txt` para que el contenedor la reconozca.
-* **Paths Dinámicos:** No uses rutas absolutas de tu máquina local. Usa la librería `pathlib` y asume que la raíz es el directorio de trabajo dentro del Docker.
-* **Tipado Estricto:** Es obligatorio el uso de *Type Hints* en todas las funciones.
+* **SOLID Principles:** Each class must have a single responsibility.
+* **KISS (Keep It Simple, Stupid):** Prioritize simplicity and readability.
+* **DRY (Don't Repeat Yourself):** Abstract common logic to avoid duplication.
+* **Layered Architecture:** Maintain a clear separation between business logic, data access, and entry interfaces.
 
 ---
 
-## 🐳 Docker & Ejecución
+## 🐍 Development Environment (Python 3.13.7)
 
-* **Volúmenes:** Ten en cuenta que los cambios en el código se reflejan en tiempo real en el contenedor. No generes archivos temporales pesados en el volumen compartido que puedan ralentizar el sistema de archivos (usa `/tmp` dentro del contenedor si es necesario).
-* **Variables de Entorno:** El agente debe buscar la configuración en variables de entorno o en `.env` dentro de `backend/`.
-* **Logs de Salida:** Asegúrate de que los logs se envíen a `stdout/stderr` para que sean visibles mediante `docker logs`.
+The code is developed locally but runs inside a Docker container via shared volumes.
 
----
-
-## 🛡️ Seguridad y Estilo
-
-* **Secretos:** Nunca escribas credenciales en el código. Usa archivos `.env` (asegurándote de que estén en `.gitignore`).
-* **Seguridad en Docker:** No asumas que el contenedor corre como `root`. Escribe código que no dependa de permisos de superusuario a menos que sea estrictamente necesario.
-* **PEP 8 & Calidad:** El código debe ser formateado con `black` y validado con `mypy`.
-* **Manejo de Excepciones:** Captura errores específicos. Evita que un error no controlado detenga el proceso del contenedor.
+* **Version:** Python 3.13.7. Use modern features (advanced f-strings, typing improvements, etc.).
+* **Dependency Management:** Any new library must be added to `requirements.txt` so the container can install it.
+* **Dynamic Paths:** Do not use absolute paths from your local machine. Use `pathlib` and assume the root is the working directory inside Docker.
+* **Strict Typing:** Type hints are mandatory for all functions.
 
 ---
 
-## 🧪 Pruebas y Calidad
+## 🐳 Docker & Execution
 
-* **Pytest:** Toda funcionalidad nueva debe incluir tests unitarios que puedan ejecutarse dentro del contenedor.
-* **Mocking:** Realiza mocks de servicios externos para asegurar que los tests sean rápidos y no dependan de la red del host.
+* **Volumes:** Remember code changes are reflected in real time inside the container. Do not generate heavy temporary files in the shared volume that could slow the filesystem (use `/tmp` inside the container if needed).
+* **Environment Variables:** The agent must load configuration from environment variables or a `.env` file inside `backend/`.
+* **Output Logs:** Ensure logs go to `stdout/stderr` so they are visible via `docker logs`.
 
 ---
 
-## 🧩 Información específica del backend
+## 🛡️ Security and Style
 
-### 📌 Entrypoint y estructura
+* **Secrets:** Never hardcode credentials. Use `.env` files (make sure they are in `.gitignore`).
+* **Docker Security:** Do not assume the container runs as `root`. Write code that does not depend on superuser permissions unless strictly required.
+* **PEP 8 & Quality:** Code must be formatted with `black` and validated with `mypy`.
+* **Exception Handling:** Catch specific errors. Avoid letting unhandled errors crash the container process.
 
-* **`backend/main.py`** es el entrypoint de FastAPI y registra los routers:
+---
+
+## 🧪 Testing and Quality
+
+* **Pytest:** All new functionality must include unit tests that run inside the container.
+* **Mocking:** Mock external services to keep tests fast and independent from host networking.
+
+---
+
+## 🧩 Backend-specific information
+
+### 📌 Entrypoint and structure
+
+* **`backend/main.py`** is the FastAPI entrypoint and registers the routers:
   * `/rag` (RAG flow).
-  * `/auth` (login con JWT).
-* **Capas principales**:
+  * `/auth` (JWT login).
+* **Primary layers**:
   * **Routers:** `backend/routers/*.py`.
   * **Services:** `backend/services/*.py`.
   * **Data layer:** `backend/database.py`, `backend/models.py`.
   * **Schemas:** `backend/schemas.py` (Pydantic).
   * **Config:** `backend/config/settings.py` (Pydantic BaseSettings).
 
-### 🔐 Autenticación
+### 🔐 Authentication
 
-* Login en `POST /auth/login` con `identifier` (username/email) + `password`.
-* Servicio: `backend/services/auth_service.py`.
-* JWT configurado en `LoginSettings` (`jwt_secret_key`, `jwt_algorithm`, `access_token_expire_minutes`).
-* Hashing de contraseñas con **passlib + bcrypt**.
+* Login at `POST /auth/login` with `identifier` (username/email) + `password`.
+* Service: `backend/services/auth_service.py`.
+* JWT configured in `LoginSettings` (`jwt_secret_key`, `jwt_algorithm`, `access_token_expire_minutes`).
+* Password hashing uses **passlib + bcrypt**.
 
-### 🧠 Flujo RAG
+### 🧠 RAG flow
 
 * Router: `backend/routers/rag.py`.
-* Servicio: `backend/services/rag_service.py`.
-* **Flujo**:
-  1. Upload de documentos en memoria (`/rag/upload`).
-  2. Procesado en chunks (`/rag/process`).
-  3. Consulta (`/rag/query`).
-  4. Reset en memoria (`/rag/reset`).
-* **Tipos soportados**: `.pdf`, `.docx`, `.md`, `.markdown`, `.txt`.
-* **Límites actuales**:
-  * Máx. **10 archivos** por sesión.
-  * Máx. **10MB** por archivo.
+* Service: `backend/services/rag_service.py`.
+* **Flow**:
+  1. Upload documents to memory (`/rag/upload`).
+  2. Process into chunks (`/rag/process`).
+  3. Query (`/rag/query`).
+  4. Reset in-memory state (`/rag/reset`).
+* **Supported types**: `.pdf`, `.docx`, `.md`, `.markdown`, `.txt`.
+* **Current limits**:
+  * Max **10 files** per session.
+  * Max **10MB** per file.
 
-### 🗄️ Base de datos
+### 🗄️ Database
 
 * ORM: **SQLAlchemy**.
-* Declarative Base en `backend/database.py`.
-* Modelos en `backend/models.py`.
-* Dependencia `get_db` para inyección de sesión.
-
-### ⚙️ Configuración (env vars clave)
-
-Las variables se leen desde `.env` o entorno mediante Pydantic Settings.
-
-* **RAGSettings** (`backend/config/settings.py`):
-  * `OPENAI_API_KEY`
-  * `OPENAI_MODEL`
-  * `EMBEDDING_MODEL`
-  * `DOCS_PATH`
-  * `CHROMA_DIR`
-  * `CHUNK_SIZE`
-  * `CHUNK_OVERLAP`
-  * `K_RESULTS`
-  * `TEMPERATURE`
-* **LoginSettings**:
-  * `JWT_SECRET_KEY`
-  * `JWT_ALGORITHM`
-  * `ACCESS_TOKEN_EXPIRE_MINUTES`
-* **DatabaseSettings**:
-  * `DRIVERNAME`, `USERNAME`, `PASSWORD`, `HOST`, `PORT`, `DATABASE`
-
-### 🧪 Tests
-
-* Tests en `backend/tests/`.
-* `test_auth.py` cubre login con credenciales válidas e inválidas.
-* `conftest.py` inyecta una DB SQLite en memoria para pruebas.
+* Declarative Base in `backend/database.py`.
+* Models in `backend/models.py`.
+* `get_db` dependency for session injection.
 
 ---
 
-> **Instrucción para la IA:** Antes de proponer código, verifica compatibilidad con Python 3.13.7 y usa rutas relativas a la estructura del contenedor.
+> **Instruction for AI:** Before proposing code, verify compatibility with Python 3.13.7 and use paths relative to the container structure.
