@@ -12,7 +12,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from pypdf import PdfReader
 
-from config import Settings
+from config import RAGSettings
 from schemas import DocumentChunk
 
 
@@ -36,7 +36,7 @@ class RAGState:
 
 
 class RAGService:
-    def __init__(self, settings: Settings) -> None:
+    def __init__(self, settings: RAGSettings) -> None:
         self.settings = settings
         if not settings.openai_api_key:
             raise HTTPException(status_code=500, detail="OPENAI_API_KEY not configured")

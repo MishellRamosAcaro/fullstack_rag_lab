@@ -11,6 +11,7 @@ backend/chroma_db/
 node_modules/
 frontend/dist/
 frontend/.vite/
+ddbb/
 
 # OS
 .DS_Store

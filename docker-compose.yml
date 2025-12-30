@@ -1,36 +1,51 @@
 services:
   db:
-    image: postgres:latest
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: rag_app
-    ports:
-      - "5432:5432"
+    image: postgres:16.10-alpine
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-
-  backend:
-    build:
-      context: ./backend
-    env_file:
-      - ./backend/.env
+      - ./ddbb/backup:/docker-entrypoint-initdb.d
+      - ./ddbb/postgresql:/var/lib/postgresql/data
     environment:
-      DATABASE_URL: postgresql+psycopg2://postgres:postgres@db:5432/rag_app
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_USER: ${POSTGRES_USER}
+      TZ: "Europe/Madrid"
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "lab_user"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
     ports:
-      - "8000:8000"
+      - 5432:5432
+
+  dbeaver:
     depends_on:
       - db
-
-  frontend:
-    build:
-      context: ./frontend
-    env_file:
-      - ./frontend/.env
+    image: dbeaver/cloudbeaver:25.2.0
     ports:
-      - "80:80"
-    depends_on:
-      - backend
+      - 8978:8978
+    environment:
+      CB_SERVER_NAME: dbeaver
+      CB_ADMIN_NAME: ${DBEAVER_DEFAULT_EMAIL}
+      CB_ADMIN_PASSWORD: ${DBEAVER_DEFAULT_PASSWORD}
+      TZ: "Europe/Madrid"
+    volumes:
+      - ./ddbb/cloudbeaver/workspace:/opt/cloudbeaver/workspace
 
-volumes:
-  postgres_data:
+  backend:
+    depends_on:
+
+
+
+    
+      db:
+        condition: service_healthy
+    image: python:3.13.7
+    working_dir: /app
+    command: sh -c "mkdir -p /app/logs && pip install -r requirements.txt && uvicorn main:app --reload --host=0.0.0.0 --port=8000"
+    volumes:
+      - ./backend:/app
+    environment:
+      TZ: "Europe/Madrid"
+    ports:
+      - 8000:8000
+
+

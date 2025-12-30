@@ -11,7 +11,7 @@ BASE_DIR = Path(__file__).resolve().parents[1]
 sys.path.append(str(BASE_DIR))
 
 from database import Base, get_db  # noqa: E402
-from login_services.auth_service import hash_password  # noqa: E402
+from backend.services.auth_service import hash_password  # noqa: E402
 from main import app  # noqa: E402
 from models import User  # noqa: E402
 

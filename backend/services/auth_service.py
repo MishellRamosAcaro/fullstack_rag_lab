@@ -6,11 +6,11 @@ from passlib.context import CryptContext
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
-from config import get_settings
+from config import get_login_settings
 from models import User
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-settings = get_settings()
+settings = get_login_settings()
 
 
 def hash_password(password: str) -> str:
@@ -36,6 +36,6 @@ def authenticate_user(db: Session, identifier: str, password: str) -> Optional[U
 
 
 def create_access_token(subject: str) -> str:
-    expire = datetime.utcnow() + timedelta(minutes=settings.access_token_expire_minutes)
+    expire = datetime.now() + timedelta(minutes=settings.access_token_expire_minutes)
     to_encode = {"sub": subject, "exp": expire}
     return jwt.encode(to_encode, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)

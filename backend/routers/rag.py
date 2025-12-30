@@ -3,7 +3,7 @@ from typing import List
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 
-from config import get_settings
+from config import get_rag_settings
 from schemas import (
     ProcessResponse,
     RagQueryRequest,
@@ -18,7 +18,7 @@ router = APIRouter(prefix="/rag", tags=["rag"])
 
 @lru_cache()
 def get_rag_service() -> RAGService:
-    settings = get_settings()
+    settings = get_rag_settings()
     return RAGService(settings)
 
 
