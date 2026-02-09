@@ -12,7 +12,7 @@ COPY . .
 
 RUN pnpm run build
 
-FROM nginx:1.29.3-alpine
+FROM nginx:1.29.5-alpine
 WORKDIR /usr/share/nginx/html
 COPY --from=build /app/dist .
 EXPOSE 80
